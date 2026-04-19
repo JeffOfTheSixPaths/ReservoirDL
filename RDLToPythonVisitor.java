@@ -176,31 +176,21 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
             out.append("    def __init__(self, threshold=1.0, beta=0.9):\n");
             out.append("        super().__init__(threshold=threshold, beta=beta)\n\n");
 
-            RDLParser.SpikeDeclContext spikeDecl = null;
+            boolean emittedMethod = false;
             for (RDLParser.BlockStatementContext bs : lsm.blockStatements) {
-                if (bs.spikeDecl() != null) {
-                    spikeDecl = bs.spikeDecl();
-                    break;
+                if (bs.methodDecl() != null) {
+                    emittedMethod = true;
+                    emitMethod(out, bs.methodDecl());
+                } else if (bs.spikeDecl() != null) {
+                    emittedMethod = true;
+                    emitSpikeMethod(out, bs.spikeDecl());
                 }
             }
 
-            if (spikeDecl == null) {
+            if (!emittedMethod) {
                 out.append("    def spike_rule(self):\n");
-                out.append("        self.time_step()\n");
-                out.append("\n");
-                continue;
+                out.append("        self.time_step()\n\n");
             }
-
-            out.append("    def spike_rule(self):\n");
-            List<String> body = renderBlockStatements(spikeDecl.block().blockStatement(), 2);
-            if (body.isEmpty()) {
-                out.append("        pass\n");
-            } else {
-                for (String line : body) {
-                    out.append(line).append("\n");
-                }
-            }
-            out.append("\n");
         }
 
         for (LayerSpec layer : layerSpecs.values()) {
@@ -292,14 +282,74 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
                 }
             } else if (bs.emitStmt() != null) {
                 lines.add(indent + "self.send_spike()");
+            } else if (bs.methodDecl() != null) {
+                lines.addAll(renderMethodBody(bs.methodDecl(), indentLevel));
             } else if (bs.assignment() != null) {
                 String left = normalizeIdentifier(bs.assignment().ID().getText());
                 String right = normalizeExpr(bs.assignment().expr().getText());
                 lines.add(indent + left + " = " + right);
+            } else if (bs.augmentedAssignment() != null) {
+                lines.add(indent + renderAugmentedAssignment(bs.augmentedAssignment()));
+            } else if (bs.incrementStmt() != null) {
+                lines.add(indent + bs.incrementStmt().ID().getText() + " += 1");
             }
         }
 
         return lines;
+    }
+
+    private void emitMethod(StringBuilder out, RDLParser.MethodDeclContext ctx) {
+        String methodName = ctx.methodName().getText();
+        List<String> parameters = new ArrayList<>();
+        if (ctx.paramList() != null) {
+            for (org.antlr.v4.runtime.tree.TerminalNode id : ctx.paramList().ID()) {
+                parameters.add(id.getText());
+            }
+        }
+
+        out.append("    def ").append(methodName).append("(self");
+        for (String parameter : parameters) {
+            out.append(", ").append(parameter);
+        }
+        out.append("):\n");
+
+        List<String> body = renderMethodBody(ctx, 2);
+        if (body.isEmpty()) {
+            out.append("        pass\n\n");
+        } else {
+            for (String line : body) {
+                out.append(line).append("\n");
+            }
+            out.append("\n");
+        }
+    }
+
+    private void emitSpikeMethod(StringBuilder out, RDLParser.SpikeDeclContext ctx) {
+        out.append("    def spike(self):\n");
+        List<String> body = renderBlockStatements(ctx.block().blockStatement(), 2);
+        if (body.isEmpty()) {
+            out.append("        pass\n\n");
+        } else {
+            for (String line : body) {
+                out.append(line).append("\n");
+            }
+            out.append("\n");
+        }
+    }
+
+    private List<String> renderMethodBody(RDLParser.MethodDeclContext ctx, int indentLevel) {
+        return renderBlockStatements(ctx.block().blockStatement(), indentLevel);
+    }
+
+    private List<String> renderMethodBody(RDLParser.SpikeDeclContext ctx, int indentLevel) {
+        return renderBlockStatements(ctx.block().blockStatement(), indentLevel);
+    }
+
+    private String renderAugmentedAssignment(RDLParser.AugmentedAssignmentContext ctx) {
+        String left = normalizeIdentifier(ctx.ID().getText());
+        String operator = ctx.op.getText();
+        String right = normalizeExpr(ctx.expr().getText());
+        return left + " " + operator + " " + right;
     }
 
     private String normalizeExpr(String expr) {

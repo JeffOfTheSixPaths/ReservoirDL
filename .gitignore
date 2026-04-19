@@ -38,3 +38,10 @@ RDLToPythonVisitor$DataSource.class
 RDLToPythonVisitor$LayerSpec.class
 RDLToPythonVisitor$LsmSpec.class
 RDLVisitor.class
+RDLParser$AugmentedAssignmentContext.class
+RDLParser$IncrementStmtContext.class
+RDLParser$MethodDeclContext.class
+RDLParser$MethodNameContext.class
+RDLParser$ParamListContext.class
+RDL.interp
+RDL.tokens

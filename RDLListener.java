@@ -107,6 +107,36 @@ public interface RDLListener extends ParseTreeListener {
 	 */
 	void exitBlockStatement(RDLParser.BlockStatementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link RDLParser#methodDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterMethodDecl(RDLParser.MethodDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link RDLParser#methodDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitMethodDecl(RDLParser.MethodDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link RDLParser#methodName}.
+	 * @param ctx the parse tree
+	 */
+	void enterMethodName(RDLParser.MethodNameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link RDLParser#methodName}.
+	 * @param ctx the parse tree
+	 */
+	void exitMethodName(RDLParser.MethodNameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link RDLParser#paramList}.
+	 * @param ctx the parse tree
+	 */
+	void enterParamList(RDLParser.ParamListContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link RDLParser#paramList}.
+	 * @param ctx the parse tree
+	 */
+	void exitParamList(RDLParser.ParamListContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link RDLParser#spikeDecl}.
 	 * @param ctx the parse tree
 	 */
@@ -146,6 +176,26 @@ public interface RDLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitAssignment(RDLParser.AssignmentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link RDLParser#augmentedAssignment}.
+	 * @param ctx the parse tree
+	 */
+	void enterAugmentedAssignment(RDLParser.AugmentedAssignmentContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link RDLParser#augmentedAssignment}.
+	 * @param ctx the parse tree
+	 */
+	void exitAugmentedAssignment(RDLParser.AugmentedAssignmentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link RDLParser#incrementStmt}.
+	 * @param ctx the parse tree
+	 */
+	void enterIncrementStmt(RDLParser.IncrementStmtContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link RDLParser#incrementStmt}.
+	 * @param ctx the parse tree
+	 */
+	void exitIncrementStmt(RDLParser.IncrementStmtContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link RDLParser#sizeStmt}.
 	 * @param ctx the parse tree

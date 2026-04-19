@@ -70,6 +70,24 @@ public interface RDLVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitBlockStatement(RDLParser.BlockStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link RDLParser#methodDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMethodDecl(RDLParser.MethodDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link RDLParser#methodName}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMethodName(RDLParser.MethodNameContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link RDLParser#paramList}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParamList(RDLParser.ParamListContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link RDLParser#spikeDecl}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -93,6 +111,18 @@ public interface RDLVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitAssignment(RDLParser.AssignmentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link RDLParser#augmentedAssignment}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAugmentedAssignment(RDLParser.AugmentedAssignmentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link RDLParser#incrementStmt}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIncrementStmt(RDLParser.IncrementStmtContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link RDLParser#sizeStmt}.
 	 * @param ctx the parse tree

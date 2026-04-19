@@ -42,13 +42,29 @@ block
 	;
 
 blockStatement
-	: spikeDecl
+	: methodDecl
+	| spikeDecl
 	| ifStmt
 	| emitStmt
 	| assignment
+	| augmentedAssignment
+	| incrementStmt
 	| sizeStmt
 	| typeStmt
 	| stepsStmt
+	;
+
+methodDecl
+	: methodName LPAREN paramList? RPAREN block
+	;
+
+methodName
+	: ID
+	| SPIKE
+	;
+
+paramList
+	: ID (COMMA ID)*
 	;
 
 spikeDecl
@@ -65,6 +81,14 @@ emitStmt
 
 assignment
 	: ID ASSIGN expr
+	;
+
+augmentedAssignment
+	: ID op=(PLUS_ASSIGN | MINUS_ASSIGN | MUL_ASSIGN | DIV_ASSIGN) expr
+	;
+
+incrementStmt
+	: ID INCREMENT
 	;
 
 sizeStmt
@@ -136,6 +160,10 @@ STEPS     : 'steps';
 
 ARROW     : '->';
 ASSIGN    : '=';
+PLUS_ASSIGN : '+=';
+MINUS_ASSIGN : '-=';
+MUL_ASSIGN : '*=';
+DIV_ASSIGN : '/=';
 GT        : '>';
 LT        : '<';
 GTE       : '>=';
@@ -144,10 +172,12 @@ EQ        : '==';
 NEQ       : '!=';
 PLUS      : '+';
 MINUS     : '-';
+INCREMENT : '++';
 MUL       : '*';
 DIV       : '/';
 LPAREN    : '(';
 RPAREN    : ')';
+COMMA     : ',';
 LBRACE    : '{';
 RBRACE    : '}';
 
@@ -157,5 +187,7 @@ FLOAT     : [0-9]+ '.' [0-9]+;
 STRING    : '"' (~["\\] | '\\' .)* '"';
 
 LINE_COMMENT : '//' ~[\r\n]* -> skip;
+HASH_COMMENT : '#' ~[\r\n]* -> skip;
+MINUS_COMMENT : '--' ~[\r\n]* -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;
 WS        : [ \t\r\n]+ -> skip;
