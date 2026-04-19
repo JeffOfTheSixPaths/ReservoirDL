@@ -1,0 +1,35 @@
+data train_data = load csv "data.csv"
+
+LSM l {
+    spike() {
+        if mem_potential > threshold {
+            emit spike
+            mem_potential = 0
+        }
+    }
+}
+
+layer l1 {
+    size 5
+}
+
+layer l2 {
+    type lsm Reservoir
+}
+
+layer answers {
+    type regression
+}
+
+layer torch custom_layer {
+    type custom torch
+}
+
+connect l1 -> l2 weight 0.5
+connect l2 -> answers
+
+simulate with train_data {
+    steps 100
+}
+
+save l
