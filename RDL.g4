@@ -64,7 +64,12 @@ methodName
 	;
 
 paramList
-	: ID (COMMA ID)*
+	: name (COMMA name)*
+	;
+
+name
+	: ID
+	| WEIGHT
 	;
 
 spikeDecl
@@ -80,15 +85,15 @@ emitStmt
 	;
 
 assignment
-	: ID ASSIGN expr
+	: name ASSIGN expr
 	;
 
 augmentedAssignment
-	: ID op=(PLUS_ASSIGN | MINUS_ASSIGN | MUL_ASSIGN | DIV_ASSIGN) expr
+	: name op=(PLUS_ASSIGN | MINUS_ASSIGN | MUL_ASSIGN | DIV_ASSIGN) expr
 	;
 
 incrementStmt
-	: ID INCREMENT
+	: name INCREMENT
 	;
 
 sizeStmt
@@ -129,7 +134,7 @@ unaryExpr
 	;
 
 primary
-	: ID
+	: name
 	| number
 	| STRING
 	| LPAREN expr RPAREN
