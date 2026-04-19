@@ -1,0 +1,15 @@
+data train_data = load csv "data.csv"
+
+LSM glimglom { size 111 }
+
+layer flimflom {
+    size 5
+}
+
+layer blimglim { size 10 }
+
+connect glimglom -> flimflom weight 0.5
+connect flimflom -> blimglim weight 0.5
+connect blimglim -> answers
+
+
