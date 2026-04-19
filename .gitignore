@@ -52,3 +52,4 @@ RDLListener.java
 RDLParser.java
 RDLVisitor.java
 RDLParser$NameContext.class
+*.class

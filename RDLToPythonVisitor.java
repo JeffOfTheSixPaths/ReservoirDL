@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 
 public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
 
+    // I LOVE NESTED CLASSES
     private static final class DataSource {
         String name;
         String csvPath;
@@ -13,6 +14,7 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
 
     private static final class LsmSpec {
         String name;
+        Integer size;
         List<RDLParser.BlockStatementContext> blockStatements = new ArrayList<>();
     }
 
@@ -59,6 +61,11 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
     public String visitLsmDecl(RDLParser.LsmDeclContext ctx) {
         LsmSpec spec = new LsmSpec();
         spec.name = ctx.ID().getText();
+        for (RDLParser.BlockStatementContext bs : ctx.block().blockStatement()) {
+            if (bs.sizeStmt() != null) {
+                spec.size = Integer.parseInt(bs.sizeStmt().INT().getText());
+            }
+        }
         spec.blockStatements.addAll(ctx.block().blockStatement());
         lsmSpecs.put(spec.name, spec);
         return null;
@@ -111,6 +118,7 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
     }
 
     private String buildPython() {
+        //used a script to do this
         StringBuilder out = new StringBuilder();
 
         out.append("import torch\n");
@@ -152,10 +160,34 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
         out.append("        })\n");
         out.append("        self.input_spikes = torch.tensor(0.0)\n\n");
 
-        out.append("class LSM(Neuron):\n");
-        out.append("    def __init__(self, threshold=1.0, beta=0.9):\n");
-        out.append("        super().__init__(beta=beta)\n");
-        out.append("        self.threshold = threshold\n\n");
+        out.append("class LSM:\n");
+        out.append("    def __init__(self, size=1, threshold=1.0, beta=0.9):\n");
+        out.append("        self.size = size\n");
+        out.append("        self.threshold = threshold\n");
+        out.append("        self.neurons = [Neuron(beta=beta) for _ in range(size)]\n");
+        out.append("        self.recurrent_connections = []\n");
+        out.append("        self.connect_reservoir()\n");
+        out.append("\n");
+        out.append("    def connect_reservoir(self):\n");
+        out.append("        for source_index, source in enumerate(self.neurons):\n");
+        out.append("            for target_index, target in enumerate(self.neurons):\n");
+        out.append("                if source_index != target_index:\n");
+        out.append("                    source.add_connection(target, randomize_weight=True)\n");
+        out.append("                    self.recurrent_connections.append((source_index, target_index))\n");
+        out.append("\n");
+        out.append("    def receive_spike(self, value):\n");
+        out.append("        if self.neurons:\n");
+        out.append("            self.neurons[0].receive_spike(value)\n");
+        out.append("\n");
+        out.append("    def send_spike(self):\n");
+        out.append("        for neuron in self.neurons:\n");
+        out.append("            neuron.send_spike()\n");
+        out.append("\n");
+        out.append("    def time_step(self):\n");
+        out.append("        for neuron in self.neurons:\n");
+        out.append("            neuron.time_step()\n");
+        out.append("        for neuron in self.neurons:\n");
+        out.append("            neuron.send_spike()\n\n");
 
         out.append("class Layer:\n");
         out.append("    def __init__(self, name, size=None, layer_type=None):\n");
@@ -174,7 +206,7 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
         for (LsmSpec lsm : lsmSpecs.values()) {
             out.append("class ").append(lsm.name).append("(LSM):\n");
             out.append("    def __init__(self, threshold=1.0, beta=0.9):\n");
-            out.append("        super().__init__(threshold=threshold, beta=beta)\n\n");
+            out.append("        super().__init__(size=").append(lsm.size != null ? lsm.size : 1).append(", threshold=threshold, beta=beta)\n\n");
 
             boolean emittedMethod = false;
             for (RDLParser.BlockStatementContext bs : lsm.blockStatements) {
@@ -266,32 +298,36 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
     }
 
     private List<String> renderBlockStatements(List<RDLParser.BlockStatementContext> statements, int indentLevel) {
+        return renderBlockStatements(statements, indentLevel, null);
+    }
+
+    private List<String> renderBlockStatements(List<RDLParser.BlockStatementContext> statements, int indentLevel, String targetPrefix) {
         List<String> lines = new ArrayList<>();
         String indent = indent(indentLevel);
 
         for (RDLParser.BlockStatementContext bs : statements) {
             if (bs.ifStmt() != null) {
                 RDLParser.IfStmtContext ifStmt = bs.ifStmt();
-                String cond = normalizeExpr(ifStmt.expr().getText());
+                String cond = normalizeExpr(ifStmt.expr().getText(), targetPrefix);
                 lines.add(indent + "if " + cond + ":");
-                List<String> nested = renderBlockStatements(ifStmt.block().blockStatement(), indentLevel + 1);
+                List<String> nested = renderBlockStatements(ifStmt.block().blockStatement(), indentLevel + 1, targetPrefix);
                 if (nested.isEmpty()) {
                     lines.add(indent + "    pass");
                 } else {
                     lines.addAll(nested);
                 }
             } else if (bs.emitStmt() != null) {
-                lines.add(indent + "self.send_spike()");
+                lines.add(indent + (targetPrefix == null ? "self.send_spike()" : targetPrefix + ".send_spike()"));
             } else if (bs.methodDecl() != null) {
-                lines.addAll(renderMethodBody(bs.methodDecl(), indentLevel));
+                lines.addAll(renderMethodBody(bs.methodDecl(), indentLevel, targetPrefix));
             } else if (bs.assignment() != null) {
-                String left = normalizeIdentifier(bs.assignment().name().getText());
-                String right = normalizeExpr(bs.assignment().expr().getText());
+                String left = normalizeIdentifier(bs.assignment().name().getText(), targetPrefix);
+                String right = normalizeExpr(bs.assignment().expr().getText(), targetPrefix);
                 lines.add(indent + left + " = " + right);
             } else if (bs.augmentedAssignment() != null) {
-                lines.add(indent + renderAugmentedAssignment(bs.augmentedAssignment()));
+                lines.add(indent + renderAugmentedAssignment(bs.augmentedAssignment(), targetPrefix));
             } else if (bs.incrementStmt() != null) {
-                lines.add(indent + bs.incrementStmt().name().getText() + " += 1");
+                lines.add(indent + normalizeIdentifier(bs.incrementStmt().name().getText(), targetPrefix) + " += 1");
             }
         }
 
@@ -313,62 +349,93 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
         }
         out.append("):\n");
 
-        List<String> body = renderMethodBody(ctx, 2);
+        List<String> body = renderMethodBody(ctx, 3, "neuron");
         if (body.isEmpty()) {
-            out.append("        pass\n\n");
+            out.append("        for neuron in self.neurons:\n");
+            out.append("            pass\n\n");
         } else {
+            out.append("        for neuron in self.neurons:\n");
             for (String line : body) {
                 out.append(line).append("\n");
             }
             out.append("\n");
+        }
+
+        if ("spike".equals(methodName)) {
+            out.append("    def spike_rule(self):\n");
+            out.append("        return self.spike()\n\n");
         }
     }
 
     private void emitSpikeMethod(StringBuilder out, RDLParser.SpikeDeclContext ctx) {
         out.append("    def spike(self):\n");
-        List<String> body = renderBlockStatements(ctx.block().blockStatement(), 2);
+        List<String> body = renderBlockStatements(ctx.block().blockStatement(), 3, "neuron");
         if (body.isEmpty()) {
-            out.append("        pass\n\n");
+            out.append("        for neuron in self.neurons:\n");
+            out.append("            pass\n\n");
         } else {
+            out.append("        for neuron in self.neurons:\n");
             for (String line : body) {
                 out.append(line).append("\n");
             }
             out.append("\n");
         }
+        out.append("    def spike_rule(self):\n");
+        out.append("        return self.spike()\n\n");
     }
 
     private List<String> renderMethodBody(RDLParser.MethodDeclContext ctx, int indentLevel) {
-        return renderBlockStatements(ctx.block().blockStatement(), indentLevel);
+        return renderMethodBody(ctx, indentLevel, null);
+    }
+
+    private List<String> renderMethodBody(RDLParser.MethodDeclContext ctx, int indentLevel, String targetPrefix) {
+        return renderBlockStatements(ctx.block().blockStatement(), indentLevel, targetPrefix);
     }
 
     private List<String> renderMethodBody(RDLParser.SpikeDeclContext ctx, int indentLevel) {
-        return renderBlockStatements(ctx.block().blockStatement(), indentLevel);
+        return renderBlockStatements(ctx.block().blockStatement(), indentLevel, null);
     }
 
     private String renderAugmentedAssignment(RDLParser.AugmentedAssignmentContext ctx) {
-        String left = normalizeIdentifier(ctx.name().getText());
+        return renderAugmentedAssignment(ctx, null);
+    }
+
+    private String renderAugmentedAssignment(RDLParser.AugmentedAssignmentContext ctx, String targetPrefix) {
+        String left = normalizeIdentifier(ctx.name().getText(), targetPrefix);
         String operator = ctx.op.getText();
-        String right = normalizeExpr(ctx.expr().getText());
+        String right = normalizeExpr(ctx.expr().getText(), targetPrefix);
         return left + " " + operator + " " + right;
     }
 
     private String normalizeExpr(String expr) {
-        String out = expr;
-        out = replaceWholeWord(out, "mem_potential", "self.mem");
-        out = replaceWholeWord(out, "threshold", "self.threshold");
-        out = replaceWholeWord(out, "spike", "self.spike");
-        return out;
+        return normalizeExpr(expr, null);
     }
 
     private String normalizeIdentifier(String id) {
+        return normalizeIdentifier(id, null);
+    }
+
+    private String normalizeExpr(String expr, String targetPrefix) {
+        String out = expr;
+        String memReference = targetPrefix == null ? "self.mem" : targetPrefix + ".mem";
+        String spikeReference = targetPrefix == null ? "self.spike" : targetPrefix + ".spike";
+        out = replaceWholeWord(out, "mem_potential", memReference);
+        out = replaceWholeWord(out, "threshold", "self.threshold");
+        out = replaceWholeWord(out, "spike", spikeReference);
+        return out;
+    }
+
+    private String normalizeIdentifier(String id, String targetPrefix) {
+        String memReference = targetPrefix == null ? "self.mem" : targetPrefix + ".mem";
+        String spikeReference = targetPrefix == null ? "self.spike" : targetPrefix + ".spike";
         if ("mem_potential".equals(id)) {
-            return "self.mem";
+            return memReference;
         }
         if ("threshold".equals(id)) {
             return "self.threshold";
         }
         if ("spike".equals(id)) {
-            return "self.spike";
+            return spikeReference;
         }
         return id;
     }

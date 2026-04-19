@@ -37,10 +37,34 @@ class Neuron:
         })
         self.input_spikes = torch.tensor(0.0)
 
-class LSM(Neuron):
-    def __init__(self, threshold=1.0, beta=0.9):
-        super().__init__(beta=beta)
+class LSM:
+    def __init__(self, size=1, threshold=1.0, beta=0.9):
+        self.size = size
         self.threshold = threshold
+        self.neurons = [Neuron(beta=beta) for _ in range(size)]
+        self.recurrent_connections = []
+        self.connect_reservoir()
+
+    def connect_reservoir(self):
+        for source_index, source in enumerate(self.neurons):
+            for target_index, target in enumerate(self.neurons):
+                if source_index != target_index:
+                    source.add_connection(target, randomize_weight=True)
+                    self.recurrent_connections.append((source_index, target_index))
+
+    def receive_spike(self, value):
+        if self.neurons:
+            self.neurons[0].receive_spike(value)
+
+    def send_spike(self):
+        for neuron in self.neurons:
+            neuron.send_spike()
+
+    def time_step(self):
+        for neuron in self.neurons:
+            neuron.time_step()
+        for neuron in self.neurons:
+            neuron.send_spike()
 
 class Layer:
     def __init__(self, name, size=None, layer_type=None):
@@ -53,12 +77,16 @@ train_data = pd.read_csv("data.csv")
 
 class l(LSM):
     def __init__(self, threshold=1.0, beta=0.9):
-        super().__init__(threshold=threshold, beta=beta)
+        super().__init__(size=1, threshold=threshold, beta=beta)
 
     def spike(self):
-        if self.mem>self.threshold:
-            self.send_spike()
-            self.mem = 0
+        for neuron in self.neurons:
+            if neuron.mem>self.threshold:
+                neuron.send_spike()
+                neuron.mem = 0
+
+    def spike_rule(self):
+        return self.spike()
 
 class l1(Layer):
     def __init__(self):
