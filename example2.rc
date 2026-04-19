@@ -1,0 +1,23 @@
+LSM l {
+    size 10
+    this_is_a_counter_variable = 0
+
+    recieve( spike_amount ){
+        mem_potential += spike_amount
+    }
+
+    spike() {
+        if mem_potential > threshold {
+            emit spike
+            mem_potential = 0
+        }
+    }
+
+    emit_spike(weight){
+        -- this is a comment 
+        -- sends spike and increases the weight 
+        weight++
+        this_is_a_counter_variable++
+    }
+}
+
