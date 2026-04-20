@@ -13,7 +13,7 @@ LSM l {
         }
     }
 
-    emit_spike(weight){
+    send_spike(weight){ -- emits spike
         -- this is a comment 
         -- sends spike and increases the weight 
         weight++
