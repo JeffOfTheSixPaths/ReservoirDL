@@ -9,12 +9,8 @@ LSM l {
     }
 }
 
-layer l1 {
+layer l1 { -- spiking neural network
     size 5
-}
-
-layer l2 {
-    type lsm Reservoir
 }
 
 layer answers {
@@ -25,8 +21,8 @@ layer torch custom_layer {
     type custom torch
 }
 
-connect l1 -> l2 weight 0.5
-connect l2 -> answers
+connect l1 -> l weight 0.5
+connect l -> answers
 
 simulate with train_data {
     steps 100
