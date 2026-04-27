@@ -1,0 +1,46 @@
+data train_data = load csv "data.csv"
+
+LSM reservoir_a {
+    size 128
+    threshold_local = 0.95
+
+    receive_spike(spike_amount) {
+        mem_potential += spike_amount
+    }
+
+    spike() {
+        if mem_potential > threshold {
+            emit spike
+            mem_potential = 0
+        }
+    }
+}
+
+layer proj {
+    size 64
+    type dense projection
+
+    forward(x) {
+        spike = x
+    }
+}
+
+readout classifier {
+    type linear readout
+
+    readout() {
+        spike = mem_potential
+    }
+}
+
+connect reservoir_a -> proj weight 1.0
+connect proj -> classifier weight 0.6
+
+simulate with train_data through reservoir_a {
+    steps 20
+    encoding latency
+    encode_steps 20
+    batch 4
+}
+
+save classifier

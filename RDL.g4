@@ -8,6 +8,7 @@ statement
 	: dataDecl
 	| lsmDecl
 	| layerDecl
+	| readoutDecl
 	| connectStmt
 	| simulateStmt
 	| saveStmt
@@ -25,12 +26,16 @@ layerDecl
 	: LAYER (TORCH)? ID block
 	;
 
+readoutDecl
+	: READOUT (TORCH)? ID block
+	;
+
 connectStmt
 	: CONNECT ID ARROW ID (WEIGHT number)?
 	;
 
 simulateStmt
-	: SIMULATE WITH ID block
+	: SIMULATE WITH ID (THROUGH ID)? block
 	;
 
 saveStmt
@@ -52,6 +57,9 @@ blockStatement
 	| sizeStmt
 	| typeStmt
 	| stepsStmt
+	| encodingStmt
+	| encodeStepsStmt
+	| batchStmt
 	;
 
 methodDecl
@@ -61,6 +69,7 @@ methodDecl
 methodName
 	: ID
 	| SPIKE
+	| READOUT
 	;
 
 paramList
@@ -70,6 +79,8 @@ paramList
 name
 	: ID
 	| WEIGHT
+	| SPIKE
+	| READOUT
 	;
 
 spikeDecl
@@ -108,8 +119,27 @@ stepsStmt
 	: STEPS INT
 	;
 
+encodingStmt
+	: ENCODING encodingType
+	;
+
+encodeStepsStmt
+	: ENCODE_STEPS INT
+	;
+
+batchStmt
+	: BATCH INT
+	;
+
+encodingType
+	: RATE
+	| LATENCY
+	| PREENCODED
+	| ID
+	;
+
 typeValue
-	: ID+
+	: (ID | READOUT | SPIKE | RATE | LATENCY | PREENCODED | TORCH)+
 	;
 
 expr
@@ -156,12 +186,20 @@ WEIGHT    : 'weight';
 SIMULATE  : 'simulate';
 WITH      : 'with';
 SAVE      : 'save';
+READOUT   : 'readout';
 SPIKE     : 'spike';
 IF        : 'if';
 EMIT      : 'emit';
 SIZE      : 'size';
 TYPE      : 'type';
 STEPS     : 'steps';
+THROUGH   : 'through';
+ENCODING  : 'encoding';
+RATE      : 'rate';
+LATENCY   : 'latency';
+PREENCODED: 'preencoded';
+ENCODE_STEPS : 'encode_steps';
+BATCH     : 'batch';
 
 ARROW     : '->';
 ASSIGN    : '=';

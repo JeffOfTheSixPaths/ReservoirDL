@@ -1,6 +1,7 @@
 data train_data = load csv "data.csv"
 
 LSM l {
+    size 64
     spike() {
         if mem_potential > threshold {
             emit spike
@@ -13,7 +14,7 @@ layer l1 { -- spiking neural network
     size 5
 }
 
-layer answers {
+readout answers {
     type regression
 }
 
@@ -24,8 +25,11 @@ layer torch custom_layer {
 connect l1 -> l weight 0.5
 connect l -> answers
 
-simulate with train_data {
+simulate with train_data through l1 {
     steps 100
+    encoding rate
+    encode_steps 32
+    batch 8
 }
 
 save l
