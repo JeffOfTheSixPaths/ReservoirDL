@@ -181,7 +181,7 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
 
     private String buildPython() {
         StringBuilder out = new StringBuilder();
-
+        //used a python script to just output "out.append(...)" for a lot of these lines 
         out.append(loadPreludeText());
         out.append("\n\n");
 
@@ -259,7 +259,7 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
             }
         }
         out.append("]\n\n");
-
+        // paste methods
         out.append("def _safe_to_numpy(sample):\n");
         out.append("    if hasattr(sample, \"to_numpy\"):\n");
         out.append("        arr = sample.to_numpy(dtype=np.float32)\n");
@@ -500,7 +500,7 @@ public class RDLToPythonVisitor extends RDLBaseVisitor<String> {
             out.append("        return None\n\n");
         }
     }
-
+    
     private void emitLsmMethod(StringBuilder out, RDLParser.MethodDeclContext ctx, Set<String> knownFields) {
         String methodName = ctx.methodName().getText();
         List<String> parameters = new ArrayList<>();
